@@ -6,7 +6,7 @@ import lombok.Data;
 
 @Data
 @Builder
-public class AccountDto {
+public class AccountResponse {
 
     private String accountNumber;
 
@@ -14,11 +14,11 @@ public class AccountDto {
 
     private String balance;
 
-    public static AccountDto convert(Account account) {
+    public static AccountResponse convert(Account account) {
         if (account == null) {
-            return AccountDto.builder().build();
+            return AccountResponse.builder().build();
         }
-        return AccountDto.builder()
+        return AccountResponse.builder()
                 .accountHolder(account.getAccountHolder())
                 .accountNumber(account.getAccountNumber())
                 .balance(account.getBalance().toPlainString())

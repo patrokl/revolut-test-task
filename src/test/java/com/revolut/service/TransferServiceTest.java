@@ -32,6 +32,7 @@ public class TransferServiceTest {
 
     @Test
     public void transfer_twoThreads2000transfers_balanceShouldStateSame() throws Exception {
+        //Arrange
         BigDecimal balance = new BigDecimal(1000);
 
         Account account1 = accountService.createAccount("Account1");
@@ -39,7 +40,7 @@ public class TransferServiceTest {
 
         Account account2 = accountService.createAccount("Account2");
         accountService.topUpAccount(account2.getAccountNumber(), balance);
-
+        //Act
         CountDownLatch countDownLatch = new CountDownLatch(2);
         ExecutorService executorService = Executors.newFixedThreadPool(2);
         TransferWorker worker1 = TransferWorker.builder()
@@ -62,7 +63,7 @@ public class TransferServiceTest {
         executorService.execute(worker2);
 
         countDownLatch.await();
-
+        //Assert
         assertEquals(balance, account1.getBalance());
         assertEquals(balance, account2.getBalance());
         assertEquals(2000, transferService.getAllTransfers().size());

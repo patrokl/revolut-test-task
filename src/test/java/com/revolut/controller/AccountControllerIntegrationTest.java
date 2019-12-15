@@ -1,19 +1,31 @@
 package com.revolut.controller;
 
+import com.revolut.Main;
 import com.revolut.controller.request.ChangeBalanceRequest;
 import com.revolut.controller.request.CreateAcoountRequest;
-import com.revolut.controller.response.AccountDto;
+import com.revolut.controller.response.AccountResponse;
 import com.revolut.controller.response.ResponseMessage;
-import org.junit.Rule;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
+import spark.Spark;
 
 @RunWith(JUnit4.class)
 public class AccountControllerIntegrationTest {
 
-    @Rule
-    public SparkApiTestRule sparkApiTestRule = new SparkApiTestRule(8080);
+    private SparkApiTestHelper sparkApiTestHelper = new SparkApiTestHelper(8080);
+
+    @BeforeClass
+    public static void startServer() {
+        Main.main(null);
+    }
+
+    @AfterClass
+    public static void stopServer() {
+        Spark.stop();
+    }
 
     @Test
     public void createAccount_simpleInvoke_shouldSucceed() throws Exception {
@@ -21,15 +33,15 @@ public class AccountControllerIntegrationTest {
         String accountHolder = "Harry Potter";
         CreateAcoountRequest request = new CreateAcoountRequest(accountHolder);
         // Act
-        ResponseMessage<AccountDto> responseMessage =
-                sparkApiTestRule.makePostRequest(AccountController.ACCOUNTS_PATH, request, AccountDto.class);
+        ResponseMessage<AccountResponse> responseMessage =
+                sparkApiTestHelper.makePostRequest(AccountController.ACCOUNTS_PATH, request, AccountResponse.class);
         // Assert
-        AccountDto expected = AccountDto.builder()
-                .accountNumber("1")
+        AccountResponse expected = AccountResponse.builder()
+                .accountNumber(responseMessage.getData().getAccountNumber())
                 .accountHolder(accountHolder)
                 .balance("0")
                 .build();
-        sparkApiTestRule.assertResponseMessage(responseMessage, "New account was created.", true, expected);
+        sparkApiTestHelper.assertResponseMessage(responseMessage, "New account was created.", true, expected);
     }
 
     @Test
@@ -37,18 +49,18 @@ public class AccountControllerIntegrationTest {
         // Arrange
         String accountHolder = "Harry Potter";
         CreateAcoountRequest request = new CreateAcoountRequest(accountHolder);
-        ResponseMessage<AccountDto> createResponse =
-                sparkApiTestRule.makePostRequest(AccountController.ACCOUNTS_PATH, request, AccountDto.class);
+        ResponseMessage<AccountResponse> createResponse =
+                sparkApiTestHelper.makePostRequest(AccountController.ACCOUNTS_PATH, request, AccountResponse.class);
         // Act
         String getByNumberPath = AccountController.ACCOUNTS_PATH + "/" + createResponse.getData().getAccountNumber();
-        ResponseMessage<AccountDto> getByNumberResponse = sparkApiTestRule.makeGetRequest(getByNumberPath, AccountDto.class);
+        ResponseMessage<AccountResponse> getByNumberResponse = sparkApiTestHelper.makeGetRequest(getByNumberPath, AccountResponse.class);
         // Assert
-        AccountDto accountDtoExpected = AccountDto.builder()
+        AccountResponse accountResponseExpected = AccountResponse.builder()
                 .balance("0")
                 .accountHolder(accountHolder)
-                .accountNumber("1")
+                .accountNumber(createResponse.getData().getAccountNumber())
                 .build();
-        sparkApiTestRule.assertResponseMessage(getByNumberResponse, "Account was found by account number", true, accountDtoExpected);
+        sparkApiTestHelper.assertResponseMessage(getByNumberResponse, "Account was found by account number", true, accountResponseExpected);
     }
 
     @Test
@@ -56,18 +68,18 @@ public class AccountControllerIntegrationTest {
         // Arrange
         String accountHolder = "Harry Potter";
         CreateAcoountRequest request = new CreateAcoountRequest(accountHolder);
-        ResponseMessage<AccountDto> createResponse =
-                sparkApiTestRule.makePostRequest(AccountController.ACCOUNTS_PATH, request, AccountDto.class);
+        ResponseMessage<AccountResponse> createResponse =
+                sparkApiTestHelper.makePostRequest(AccountController.ACCOUNTS_PATH, request, AccountResponse.class);
         // Act
         String notExistedAccount = "1000";
         String getByNumberPath = AccountController.ACCOUNTS_PATH + "/" + notExistedAccount;
-        ResponseMessage getByNumberResponse = sparkApiTestRule.makeGetRequest(getByNumberPath, AccountDto.class);
+        ResponseMessage getByNumberResponse = sparkApiTestHelper.makeGetRequest(getByNumberPath, AccountResponse.class);
         //Assert
-        sparkApiTestRule.assertResponseMessage(
+        sparkApiTestHelper.assertResponseMessage(
                 getByNumberResponse,
                 "Account doesn't exist. Account number: " + notExistedAccount,
                 false,
-                Object.class
+                null
         );
 
     }
@@ -78,20 +90,20 @@ public class AccountControllerIntegrationTest {
         // Arrange
         String accountHolder = "Harry Potter";
         CreateAcoountRequest request = new CreateAcoountRequest(accountHolder);
-        ResponseMessage<AccountDto> responseMessage =
-                sparkApiTestRule.makePostRequest(AccountController.ACCOUNTS_PATH, request, AccountDto.class);
+        ResponseMessage<AccountResponse> responseMessage =
+                sparkApiTestHelper.makePostRequest(AccountController.ACCOUNTS_PATH, request, AccountResponse.class);
         // Act
         ChangeBalanceRequest changeBalanceRequest = new ChangeBalanceRequest("100");
         String topUpPath = AccountController.ACCOUNTS_PATH
                 + "/"
                 + responseMessage.getData().getAccountNumber()
                 + AccountController.TOP_UP_PATH;
-        ResponseMessage<Object> topUpResponse = sparkApiTestRule.makePutRequest(
+        ResponseMessage<Object> topUpResponse = sparkApiTestHelper.makePutRequest(
                 topUpPath,
                 changeBalanceRequest,
                 Object.class);
         // Assert
-        sparkApiTestRule.assertResponseMessage(topUpResponse, "Account was topped up.", true, null);
+        sparkApiTestHelper.assertResponseMessage(topUpResponse, "Account was topped up.", true, null);
     }
 
     @Test
@@ -99,25 +111,25 @@ public class AccountControllerIntegrationTest {
         // Arrange
         String accountHolder = "Harry Potter";
         CreateAcoountRequest request = new CreateAcoountRequest(accountHolder);
-        ResponseMessage<AccountDto> responseMessage =
-                sparkApiTestRule.makePostRequest(AccountController.ACCOUNTS_PATH, request, AccountDto.class);
+        ResponseMessage<AccountResponse> responseMessage =
+                sparkApiTestHelper.makePostRequest(AccountController.ACCOUNTS_PATH, request, AccountResponse.class);
         ChangeBalanceRequest changeBalanceRequest = new ChangeBalanceRequest("100");
         String topUpPath = AccountController.ACCOUNTS_PATH
                 + "/"
                 + responseMessage.getData().getAccountNumber()
                 + AccountController.TOP_UP_PATH;
-        sparkApiTestRule.makePutRequest(topUpPath, changeBalanceRequest, Object.class);
+        sparkApiTestHelper.makePutRequest(topUpPath, changeBalanceRequest, Object.class);
         // Act
         String withdrawPath = AccountController.ACCOUNTS_PATH
                 + "/"
                 + responseMessage.getData().getAccountNumber()
                 + AccountController.WITHDRAW_ACCOUNT_PATH;
         changeBalanceRequest = new ChangeBalanceRequest("99");
-        ResponseMessage<Object> withdrawResponse = sparkApiTestRule.makePutRequest(withdrawPath, changeBalanceRequest, Object.class);
+        ResponseMessage<Object> withdrawResponse = sparkApiTestHelper.makePutRequest(withdrawPath, changeBalanceRequest, Object.class);
         //Assert
-        sparkApiTestRule.assertResponseMessage(
+        sparkApiTestHelper.assertResponseMessage(
                 withdrawResponse,
-                "Bank account wath withdrawed",
+                "Bank account was withdrawed",
                 true,
                 null
         );
@@ -128,23 +140,23 @@ public class AccountControllerIntegrationTest {
         // Arrange
         String accountHolder = "Harry Potter";
         CreateAcoountRequest request = new CreateAcoountRequest(accountHolder);
-        ResponseMessage<AccountDto> responseMessage =
-                sparkApiTestRule.makePostRequest(AccountController.ACCOUNTS_PATH, request, AccountDto.class);
+        ResponseMessage<AccountResponse> responseMessage =
+                sparkApiTestHelper.makePostRequest(AccountController.ACCOUNTS_PATH, request, AccountResponse.class);
         ChangeBalanceRequest changeBalanceRequest = new ChangeBalanceRequest("100");
         String topUpPath = AccountController.ACCOUNTS_PATH
                 + "/"
                 + responseMessage.getData().getAccountNumber()
                 + AccountController.TOP_UP_PATH;
-        sparkApiTestRule.makePutRequest(topUpPath, changeBalanceRequest, Object.class);
+        sparkApiTestHelper.makePutRequest(topUpPath, changeBalanceRequest, Object.class);
         // Act
         String withdrawPath = AccountController.ACCOUNTS_PATH
                 + "/"
                 + responseMessage.getData().getAccountNumber()
                 + AccountController.WITHDRAW_ACCOUNT_PATH;
         changeBalanceRequest = new ChangeBalanceRequest("101");
-        ResponseMessage<Object> withdrawResponse = sparkApiTestRule.makePutRequest(withdrawPath, changeBalanceRequest, Object.class);
+        ResponseMessage<Object> withdrawResponse = sparkApiTestHelper.makePutRequest(withdrawPath, changeBalanceRequest, Object.class);
         //Assert
-        sparkApiTestRule.assertResponseMessage(
+        sparkApiTestHelper.assertResponseMessage(
                 withdrawResponse,
                 "Account can't be withdrawn. Balance is less than amount of withdrawing",
                 false,

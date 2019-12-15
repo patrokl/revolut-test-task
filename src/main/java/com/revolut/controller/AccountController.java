@@ -3,7 +3,7 @@ package com.revolut.controller;
 import com.google.gson.Gson;
 import com.revolut.controller.request.ChangeBalanceRequest;
 import com.revolut.controller.request.CreateAcoountRequest;
-import com.revolut.controller.response.AccountDto;
+import com.revolut.controller.response.AccountResponse;
 import com.revolut.controller.response.ResponseMessage;
 import com.revolut.exception.AccountNotFoundException;
 import com.revolut.exception.WithdrawAccountException;
@@ -48,7 +48,7 @@ public class AccountController implements BaseController {
         String body = request.body();
         CreateAcoountRequest createAcoountRequest = gson.fromJson(body, CreateAcoountRequest.class);
         Account account = accountService.createAccount(createAcoountRequest.getAccountHolder());
-        return new ResponseMessage<>("New account was created.", true, AccountDto.convert(account));
+        return new ResponseMessage<>("New account was created.", true, AccountResponse.convert(account));
     };
 
     private Route withdrawAccount = ((request, response) -> {
@@ -68,7 +68,7 @@ public class AccountController implements BaseController {
     private Route getAccountByNumber = (request, response) -> {
         String accountNumber = request.params(ACCOUNT_NUMBER);
         Account account = accountService.findAccountByNumber(accountNumber);
-        return new ResponseMessage<>("Account was found by account number", true, AccountDto.convert(account));
+        return new ResponseMessage<>("Account was found by account number", true, AccountResponse.convert(account));
     };
 
     private ExceptionHandler<AccountNotFoundException> accountNotFoundExceptionHandler = (exception, request, response) -> {
